@@ -30,31 +30,62 @@ function Window.new(title, size)
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
+	local shadow = Instance.new("ImageLabel")
+	shadow.Size = size or UDim2.fromOffset(500, 400)
+	shadow.Position = UDim2.fromScale(0.5, 0.5)
+	shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+	shadow.BackgroundTransparency = 1
+	shadow.Image = "rbxassetid://1316045217" -- Soft shadow
+	shadow.ScaleType = Enum.ScaleType.Slice
+	shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+	shadow.ImageTransparency = 0.4
+	shadow.ZIndex = 0
+	shadow.Parent = screenGui
+
 	local main = Instance.new("Frame")
-	main.Size = size or UDim2.fromScale(0.8, 0.8)
-	main.Position = UDim2.fromScale(0.5, 0.5)
-	main.AnchorPoint = Vector2.new(0.5, 0.5)
+	main.Size = UDim2.new(1, -20, 1, -20)
+	main.Position = UDim2.new(0, 10, 0, 10)
 	main.BackgroundColor3 = Theme.BackgroundColor
-	main.ClipsDescendants = true
-	main.Parent = screenGui
+	main.AnchorPoint = Vector2.new(0, 0)
+	main.ClipsDescendants = false
+	main.ZIndex = 1
+	main.Parent = shadow
 
 	local uiCorner = Instance.new("UICorner", main)
 	uiCorner.CornerRadius = Theme.CornerRadius
 
-	local titleLabel = Instance.new("TextLabel")
-	titleLabel.Size = UDim2.new(1, 0, 0, 40)
-	titleLabel.BackgroundTransparency = 1
-	titleLabel.Text = title or "XLaunch"
-	titleLabel.TextColor3 = Theme.TextColor
-	titleLabel.Font = Theme.Font
-	titleLabel.TextScaled = true
-	titleLabel.Parent = main
+	local stroke = Instance.new("UIStroke", main)
+	stroke.Thickness = 1
+	stroke.Color = Color3.fromRGB(255, 255, 255)
+	stroke.Transparency = 0.85
 
+	-- TopBar
+	local topBar = Instance.new("Frame")
+	topBar.Name = "TopBar"
+	topBar.Size = UDim2.new(1, 0, 0, 45)
+	topBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	topBar.BackgroundTransparency = 0.9
+	topBar.BorderSizePixel = 0
+	topBar.Parent = main
+
+	local topLabel = Instance.new("TextLabel")
+	topLabel.Text = title or "XLaunch Window"
+	topLabel.Size = UDim2.new(1, -20, 1, 0)
+	topLabel.Position = UDim2.new(0, 10, 0, 0)
+	topLabel.BackgroundTransparency = 1
+	topLabel.TextColor3 = Theme.TextColor
+	topLabel.Font = Theme.Font
+	topLabel.TextScaled = true
+	topLabel.TextXAlignment = Enum.TextXAlignment.Left
+	topLabel.Parent = topBar
+
+	-- Content Area
 	local container = Instance.new("Frame")
-	container.Name = "Content"
-	container.Size = UDim2.new(1, -20, 1, -60)
-	container.Position = UDim2.new(0, 10, 0, 50)
+	container.Name = "Container"
+	container.Size = UDim2.new(1, -20, 1, -65)
+	container.Position = UDim2.new(0, 10, 0, 55)
 	container.BackgroundTransparency = 1
+	container.ClipsDescendants = true
 	container.Parent = main
 
 	local layout = Instance.new("UIListLayout")
@@ -63,36 +94,33 @@ function Window.new(title, size)
 	layout.Parent = container
 
 	-- Resize Handle
-	local resizeHandle = Instance.new("Frame")
-	resizeHandle.Size = UDim2.new(0, 16, 0, 16)
+	local resizeHandle = Instance.new("ImageButton")
+	resizeHandle.Size = UDim2.new(0, 24, 0, 24)
 	resizeHandle.AnchorPoint = Vector2.new(1, 1)
-	resizeHandle.Position = UDim2.new(1, -4, 1, -4)
-	resizeHandle.BackgroundColor3 = Theme.PrimaryColor
+	resizeHandle.Position = UDim2.new(1, -10, 1, -10)
+	resizeHandle.Image = "rbxassetid://6035047377" -- icon: resize
+	resizeHandle.ImageColor3 = Theme.PrimaryColor
+	resizeHandle.BackgroundTransparency = 1
+	resizeHandle.ZIndex = 2
 	resizeHandle.Parent = main
 
-	local corner = Instance.new("UICorner", resizeHandle)
-	corner.CornerRadius = UDim.new(1, 0)
-
 	local dragging = false
-	local dragInput, dragStart, startSize
+	local dragStart, startSize
 
 	resizeHandle.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = true
 			dragStart = input.Position
-			startSize = main.Size
+			startSize = shadow.Size
 		end
 	end)
 
 	UserInputService.InputChanged:Connect(function(input)
 		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
 			local delta = input.Position - dragStart
-			main.Size = UDim2.new(
-				startSize.X.Scale,
-				math.clamp(startSize.X.Offset + delta.X, 200, 1000),
-				startSize.Y.Scale,
-				math.clamp(startSize.Y.Offset + delta.Y, 200, 800)
-			)
+			local newX = math.clamp(startSize.X.Offset + delta.X, 300, 1000)
+			local newY = math.clamp(startSize.Y.Offset + delta.Y, 200, 800)
+			shadow.Size = UDim2.fromOffset(newX, newY)
 		end
 	end)
 
@@ -105,8 +133,10 @@ function Window.new(title, size)
 	self.Gui = screenGui
 	self.Main = main
 	self.Container = container
+
 	return self
 end
+
 
 function Window:Add(component)
 	component.Gui.Parent = self.Container
