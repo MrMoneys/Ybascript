@@ -269,6 +269,78 @@ function Slider.new(labelText, min, max, default, callback)
 	return self
 end
 
+
+
+local Tab = {}
+Tab.__index = Tab
+
+function Tab.new(parentFrame)
+	local self = setmetatable({}, Tab)
+
+	local tabButtons = Instance.new("Frame")
+	tabButtons.Name = "TabButtons"
+	tabButtons.Size = UDim2.new(1, 0, 0, 40)
+	tabButtons.BackgroundTransparency = 1
+	tabButtons.Parent = parentFrame
+
+	local uiList = Instance.new("UIListLayout", tabButtons)
+	uiList.FillDirection = Enum.FillDirection.Horizontal
+	uiList.SortOrder = Enum.SortOrder.LayoutOrder
+	uiList.Padding = UDim.new(0, 5)
+
+	local contentFrame = Instance.new("Frame")
+	contentFrame.Name = "TabContent"
+	contentFrame.Size = UDim2.new(1, 0, 1, -40)
+	contentFrame.Position = UDim2.new(0, 0, 0, 40)
+	contentFrame.BackgroundTransparency = 1
+	contentFrame.ClipsDescendants = true
+	contentFrame.Parent = parentFrame
+
+	self.TabButtons = tabButtons
+	self.TabContent = contentFrame
+	self.Pages = {}
+
+	return self
+end
+
+function Tab:AddPage(name)
+	local pageFrame = Instance.new("Frame")
+	pageFrame.Size = UDim2.new(1, 0, 1, 0)
+	pageFrame.BackgroundTransparency = 1
+	pageFrame.Visible = false
+	pageFrame.Parent = self.TabContent
+
+	local layout = Instance.new("UIListLayout", pageFrame)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Padding = UDim.new(0, 6)
+
+	local btn = Instance.new("TextButton")
+	btn.Text = name
+	btn.Size = UDim2.new(0, 100, 1, 0)
+	btn.BackgroundColor3 = Theme.ForegroundColor
+	btn.TextColor3 = Theme.TextColor
+	btn.TextScaled = true
+	btn.Font = Theme.Font
+	btn.Parent = self.TabButtons
+
+	local corner = Instance.new("UICorner", btn)
+	corner.CornerRadius = Theme.CornerRadius
+
+	btn.MouseButton1Click:Connect(function()
+		for _, p in pairs(self.Pages) do p.Visible = false end
+		pageFrame.Visible = true
+	end)
+
+	if #self.Pages == 0 then
+		pageFrame.Visible = true
+	end
+
+	table.insert(self.Pages, pageFrame)
+
+	return pageFrame
+end
+
+
 -- Main API
 local XLaunch = {
 	Window = Window,
