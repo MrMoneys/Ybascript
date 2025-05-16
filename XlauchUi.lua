@@ -1,10 +1,6 @@
 --[[
-    MobileUI Library - Uma biblioteca de interface do usuário para dispositivos móveis em Luau
-    Features:
-    - Componentes otimizados para touch
-    - Gestos simples
-    - Design responsivo
-    - Fácil personalização
+    MobileUI Library - Versão para Executor
+    Otimizada para mobile e compatível com executores como Script-Ware, Synapse X, etc.
 ]]
 
 local MobileUI = {}
@@ -23,11 +19,14 @@ local DEFAULT_CONFIG = {
     ButtonHeight = 40
 }
 
+-- Verifica se estamos em um executor
+local IS_EXECUTOR = not game:GetService("RunService"):IsStudio()
+
 -- Cria uma nova instância da UI
 function MobileUI.new(parent, config)
     local self = setmetatable({}, MobileUI)
     
-    self.Parent = parent or error("Parent is required")
+    self.Parent = parent or (IS_EXECUTOR and (gethui and gethui() or game:GetService("CoreGui")) or error("Parent is required")
     self.Config = setmetatable(config or {}, {__index = DEFAULT_CONFIG})
     self.Components = {}
     
@@ -186,11 +185,9 @@ function MobileUI:AddToggle(section, options)
         end
     end
     
-    -- Interação touch
-    toggleButton.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            updateValue(not options.Value)
-        end
+    -- Interação touch/click
+    toggleButton.MouseButton1Click:Connect(function()
+        updateValue(not options.Value)
     end)
     
     -- Métodos do toggle
@@ -207,7 +204,7 @@ function MobileUI:AddToggle(section, options)
     return toggle
 end
 
--- Adiciona um botão
+-- Adiciona um botão (versão simplificada para executor)
 function MobileUI:AddButton(section, options)
     options = options or {}
     
@@ -226,19 +223,17 @@ function MobileUI:AddButton(section, options)
     corner.CornerRadius = self.Config.CornerRadius
     corner.Parent = button
     
-    -- Efeito de toque
-    button.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            button.BackgroundTransparency = 0.5
-        end
-    end)
+    -- Efeito de clique
+    local function animateClick()
+        button.BackgroundTransparency = 0.5
+        wait(0.1)
+        button.BackgroundTransparency = 0
+    end
     
-    button.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            button.BackgroundTransparency = 0
-            if options.Callback then
-                options.Callback()
-            end
+    button.MouseButton1Click:Connect(function()
+        animateClick()
+        if options.Callback then
+            options.Callback()
         end
     end)
     
@@ -258,7 +253,7 @@ function MobileUI:AddButton(section, options)
     return buttonObj
 end
 
--- Adiciona um slider
+-- Adiciona um slider (versão simplificada)
 function MobileUI:AddSlider(section, options)
     options = options or {}
     options.Min = options.Min or 0
@@ -323,7 +318,7 @@ function MobileUI:AddSlider(section, options)
     track.Parent = sliderFrame
     sliderFrame.Parent = section.Frame
     
-    -- Lógica de interação
+    -- Lógica de interação simplificada para executor
     local dragging = false
     
     local function updateValue(value)
@@ -344,25 +339,23 @@ function MobileUI:AddSlider(section, options)
         end
     end
     
-    thumb.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-        end
+    thumb.MouseButton1Down:Connect(function()
+        dragging = true
     end)
     
     game:GetService("UserInputService").InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = false
         end
     end)
     
-    thumb.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.Touch then
-            local position = input.Position.X
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local mouse = game:GetService("Players").LocalPlayer:GetMouse()
             local absolutePosition = sliderFrame.AbsolutePosition.X
             local absoluteSize = sliderFrame.AbsoluteSize.X
             
-            local relativePosition = math.clamp(position - absolutePosition, 0, absoluteSize)
+            local relativePosition = math.clamp(mouse.X - absolutePosition, 0, absoluteSize)
             local ratio = relativePosition / absoluteSize
             local value = options.Min + (options.Max - options.Min) * ratio
             
@@ -384,7 +377,7 @@ function MobileUI:AddSlider(section, options)
     return slider
 end
 
--- Adiciona uma caixa de texto
+-- Adiciona uma caixa de texto (versão simplificada)
 function MobileUI:AddTextbox(section, options)
     options = options or {}
     options.Placeholder = options.Placeholder or "Type here..."
@@ -427,13 +420,6 @@ function MobileUI:AddTextbox(section, options)
     textbox.Parent = textboxFrame
     textboxFrame.Parent = section.Frame
     
-    -- Foco ao tocar
-    textbox.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.Return, false, nil)
-        end
-    end)
-    
     -- Callback ao terminar de editar
     textbox.FocusLost:Connect(function(enterPressed)
         if options.Callback and (enterPressed or not options.OnlyEnter) then
@@ -455,7 +441,7 @@ function MobileUI:AddTextbox(section, options)
     return textboxObj
 end
 
--- Adiciona um dropdown
+-- Adiciona um dropdown (versão simplificada)
 function MobileUI:AddDropdown(section, options)
     options = options or {}
     options.Options = options.Options or {}
@@ -551,22 +537,20 @@ function MobileUI:AddDropdown(section, options)
     dropdownFrame.Parent = section.Frame
     
     -- Toggle das opções
-    button.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            optionsFrame.Visible = not optionsFrame.Visible
-            dropdownFrame.Size = optionsFrame.Visible and UDim2.new(1, -20, 0, 30 + optionsFrame.AbsoluteSize.Y + 5) or UDim2.new(1, -20, 0, 30)
-        end
+    button.MouseButton1Click:Connect(function()
+        optionsFrame.Visible = not optionsFrame.Visible
+        dropdownFrame.Size = optionsFrame.Visible and UDim2.new(1, -20, 0, 30 + optionsFrame.AbsoluteSize.Y + 5) or UDim2.new(1, -20, 0, 30)
     end)
     
-    -- Fechar ao tocar fora
+    -- Fechar ao clicar fora
     game:GetService("UserInputService").InputBegan:Connect(function(input, processed)
-        if input.UserInputType == Enum.UserInputType.Touch and optionsFrame.Visible then
-            local touchPos = input.Position
+        if input.UserInputType == Enum.UserInputType.MouseButton1 and optionsFrame.Visible then
+            local mouse = game:GetService("Players").LocalPlayer:GetMouse()
             local absolutePos = dropdownFrame.AbsolutePosition
             local absoluteSize = dropdownFrame.AbsoluteSize
             
-            if not (touchPos.X >= absolutePos.X and touchPos.X <= absolutePos.X + absoluteSize.X and
-                   touchPos.Y >= absolutePos.Y and touchPos.Y <= absolutePos.Y + absoluteSize.Y) then
+            if not (mouse.X >= absolutePos.X and mouse.X <= absolutePos.X + absoluteSize.X and
+                   mouse.Y >= absolutePos.Y and mouse.Y <= absolutePos.Y + absoluteSize.Y) then
                 optionsFrame.Visible = false
                 dropdownFrame.Size = UDim2.new(1, -20, 0, 30)
             end
@@ -630,7 +614,7 @@ function MobileUI:AddDropdown(section, options)
     return dropdown
 end
 
--- Adiciona um keybind (atalho de tecla)
+-- Adiciona um keybind (versão simplificada)
 function MobileUI:AddKeybind(section, options)
     options = options or {}
     options.Key = options.Key or Enum.KeyCode.LeftShift
@@ -673,16 +657,16 @@ function MobileUI:AddKeybind(section, options)
     -- Modo de edição
     local editing = false
     
-    button.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch and not editing then
+    button.MouseButton1Click:Connect(function()
+        if not editing then
             editing = true
             button.Text = "..."
             button.BackgroundColor3 = self.Config.PrimaryColor
             
             local connection
-            connection = game:GetService("UserInputService").InputBegan:Connect(function(newInput)
-                if newInput.UserInputType == Enum.UserInputType.Keyboard then
-                    options.Key = newInput.KeyCode
+            connection = game:GetService("UserInputService").InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Keyboard then
+                    options.Key = input.KeyCode
                     button.Text = options.Key.Name
                     editing = false
                     button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
